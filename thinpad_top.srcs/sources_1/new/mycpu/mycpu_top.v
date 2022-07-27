@@ -184,11 +184,36 @@ wb_stage wb_stage(
 	.ws_forward_bus   (ws_forward_bus)
 );
 
+assign i_rd_req  = inst_req; 
+assign i_rd_type = 3'b010;
+assign i_rd_addr = inst_vaddr;
+assign inst_addr_ok = 1'b1;
+assign inst_data_ok = 1'b1;
+assign inst_rdata   = i_ret_data;
+
+assign d_rd_req     = data_req & !data_wr;
+assign d_rd_type    = 3'b010;
+assign d_rd_addr    = data_vaddr;
+assign data_addr_ok = 1'b1;
+assign data_rdata   = d_ret_data;
+assign data_data_ok = 1'b1;
+
+assign d_wr_req  = data_req & data_wr;
+assign d_wr_type = 3'b010;
+assign d_wr_addr = data_vaddr;
+assign d_wr_wstrb= data_wstrb;
+assign d_wr_data = data_wdata;
+
+assign inst_addr_ok = 1'b1;
+assign inst_data_ok = 1'b1;
+
+
+/*
 cache icache(
     .clk       (clk  ),
     .reset     (reset),
     // Cache与CPU流水线的交互接口
-	.c		   (3'h2	          ),     //cache属性
+	.c		   (3'h3	          ),     //cache属性
 	.valid     (inst_req          ),     //表明请求有效
     .op        (inst_wr           ),     //1：write  0：read
     .index     (inst_vaddr[11: 4] ),     //addr[11: 4]
@@ -222,7 +247,7 @@ cache dcache(
     .clk       (clk  ),
     .reset     (reset),
     // Cache与CPU流水线的交互接口
-	.c	       (3'h2),//{3{data_vaddr!=32'hbfd0_03f8 && data_vaddr!=32'hbfd0_03fc}}	& 3'h3),     //cache属性
+	.c	       ({3{data_vaddr!=32'hbfd0_03f8 && data_vaddr!=32'hbfd0_03fc}}	& 3'h3),     //cache属性
 	.valid     (data_req              ),     //表明请求有效
     .op        (data_wr               ),     //1：write  0：read
     .index     (data_vaddr[11: 4] 	  ),     //addr[11: 4]
@@ -251,6 +276,6 @@ cache dcache(
 	.wr_wvalid (d_wr_wvalid),   //uncached的写请求响应
 	.wr_wlast  (d_wr_wlast )  	//uncached的写请求响应
 );
-
+*/
 
 endmodule

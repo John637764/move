@@ -16,36 +16,25 @@ module sram_wrap(
 	output reg         sram_we_n
 );
 
-assign rdata = sram_data;
-
 assign sram_data = |wen&&en ? wdata : 32'bz;
-
+assign rdata = sram_data;
+//always @(posedge clk)begin
+//	rdata <= sram_data;
+//end
 always @(posedge clk)begin
 	sram_addr <= addr[21:2];
 end
 always @(posedge clk)begin
-	if(reset)
-		sram_be_n <= 4'hf;
-	else
-		sram_be_n <= ~(|wen&&en ? wen : 4'hf);
+	sram_be_n <= ~(|wen&&en ? wen : 4'hf);
 end
 always @(posedge clk)begin
-	if(reset)
-		sram_ce_n <= 1'b1;
-	else
-		sram_ce_n <= ~en;
+	sram_ce_n <= ~en;
 end
 always @(posedge clk)begin
-	if(reset)
-		sram_oe_n <= 1'b1;
-	else
-		sram_oe_n <= ~(~(|wen)&&en);
+	sram_oe_n <= ~(~(|wen)&&en);
 end
 always @(posedge clk)begin
-	if(reset)
-		sram_we_n <= 1'b1;
-	else
-		sram_we_n <= ~(|wen&&en);
+	sram_we_n <= ~(|wen&&en);
 end
 
 endmodule

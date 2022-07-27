@@ -1,17 +1,11 @@
 `timescale 1ns / 1ps
+
 module tb;
+parameter SIMULATION = 1'b1;
 
 wire clk_50M, clk_11M0592;
 
-reg clock_btn = 0;         //BTN5手动时钟按钮开关，带消抖电路，按下时为1
 reg reset_btn = 0;         //BTN6手动复位按钮开关，带消抖电路，按下时为1
-
-reg[3:0]  touch_btn;  //BTN1~BTN4，按钮开关，按下时为1
-reg[31:0] dip_sw;     //32位拨码开关，拨到“ON”时为1
-
-wire[15:0] leds;       //16位LED，输出时1点亮
-wire[7:0]  dpy0;       //数码管低位信号，包括小数点，输出1点亮
-wire[7:0]  dpy1;       //数码管高位信号，包括小数点，输出1点亮
 
 wire txd;  //直连串口发送端
 wire rxd;  //直连串口接收端
@@ -40,40 +34,25 @@ wire flash_we_n;         //Flash写使能信号，低有效
 wire flash_byte_n;       //Flash 8bit模式选择，低有效。在使用flash的16位模式时请设为1
 
 //Windows需要注意路径分隔符的转义，例如"D:\\foo\\bar.bin"
-parameter BASE_RAM_INIT_FILE = "/tmp/main.bin"; //BaseRAM初始化文件，请修改为实际的绝对路径
+parameter BASE_RAM_INIT_FILE = "D:\\NSCSCC\\NSCSCC2022\\2022021\\kernel.bin"; //BaseRAM初始化文件，请修改为实际的绝对路径
 parameter EXT_RAM_INIT_FILE = "/tmp/eram.bin";    //ExtRAM初始化文件，请修改为实际的绝对路径
 parameter FLASH_INIT_FILE = "/tmp/kernel.elf";    //Flash初始化文件，请修改为实际的绝对路径
 
-assign rxd = 1'b1; //idle state
+
 
 initial begin 
     //在这里可以自定义测试输入序列，例如：
-    dip_sw = 32'h2;
-    touch_btn = 0;
     reset_btn = 1;
     #100;
     reset_btn = 0;
-    for (integer i = 0; i < 20; i = i+1) begin
-        #100; //等待100ns
-        clock_btn = 1; //按下手工时钟按钮
-        #100; //等待100ns
-        clock_btn = 0; //松开手工时钟按钮
-    end
+    
 end
 
 // 待测试用户设计
-thinpad_top dut(
+thinpad_top #(.SIMULATION(SIMULATION)) dut 
+(
     .clk_50M(clk_50M),
-    .clk_11M0592(clk_11M0592),
-    .clock_btn(clock_btn),
     .reset_btn(reset_btn),
-    .touch_btn(touch_btn),
-    .dip_sw(dip_sw),
-    .leds(leds),
-    .dpy1(dpy1),
-    .dpy0(dpy0),
-    .txd(txd),
-    .rxd(rxd),
     .base_ram_data(base_ram_data),
     .base_ram_addr(base_ram_addr),
     .base_ram_ce_n(base_ram_ce_n),
@@ -86,14 +65,9 @@ thinpad_top dut(
     .ext_ram_oe_n(ext_ram_oe_n),
     .ext_ram_we_n(ext_ram_we_n),
     .ext_ram_be_n(ext_ram_be_n),
-    .flash_d(flash_d),
-    .flash_a(flash_a),
-    .flash_rp_n(flash_rp_n),
-    .flash_vpen(flash_vpen),
-    .flash_oe_n(flash_oe_n),
-    .flash_ce_n(flash_ce_n),
-    .flash_byte_n(flash_byte_n),
-    .flash_we_n(flash_we_n)
+	
+	.txd(txd),
+    .rxd(rxd)
 );
 // 时钟源
 clock osc(
@@ -135,6 +109,7 @@ sram_model ext2(/*autoinst*/
             .WE_n(ext_ram_we_n),
             .LB_n(ext_ram_be_n[2]),
             .UB_n(ext_ram_be_n[3]));
+/*
 // Flash 仿真模型
 x28fxxxp30 #(.FILENAME_MEM(FLASH_INIT_FILE)) flash(
     .A(flash_a[1+:22]), 
@@ -150,13 +125,15 @@ x28fxxxp30 #(.FILENAME_MEM(FLASH_INIT_FILE)) flash(
     .VDDQ('d3300), 
     .VPP('d1800), 
     .Info(1'b1));
-
+*/
+/*
 initial begin 
     wait(flash_byte_n == 1'b0);
     $display("8-bit Flash interface is not supported in simulation!");
     $display("Please tie flash_byte_n to high");
     $stop;
 end
+*/
 
 // 从文件加载 BaseRAM
 initial begin 
@@ -179,7 +156,7 @@ initial begin
         base2.mem_array1[i] = tmp_array[i][0+:8];
     end
 end
-
+/*
 // 从文件加载 ExtRAM
 initial begin 
     reg [31:0] tmp_array[0:1048575];
@@ -201,4 +178,152 @@ initial begin
         ext2.mem_array1[i] = tmp_array[i][0+:8];
     end
 end
+*/
+`define TEST_ADDR   32'h80100000
+`define CRYPTONIGHT 32'h800030c4
+`define STREAM		32'h8000300c
+`define MATRIX		32'h8000303c
+`define ORDER_G		8'h47
+`define ORDER_D 	8'h44
+
+wire 	   test_rready;
+wire 	   test_rclear;
+wire [7:0] test_rdata ;
+wire 	   test_tbusy ;
+reg  	   test_tstart;
+wire [7:0] test_tdata ;
+
+reg [2:0] task_cnt;
+
+assign test_rclear = test_rready;
+
+async_receiver #(.ClkFrequency(50000000),.Baud(115200)) //接收模块，9600无检验位
+    test_uart_r(
+        .clk		    (clk_50M	),          //外部时钟信号
+        .RxD		    (txd		),          //外部串行信号输入
+        .RxD_data_ready (test_rready),  	 	//数据接收到标志
+        .RxD_clear	    (test_rclear),       	//清除接收标志
+        .RxD_data 	    (test_rdata )           //接收到的一字节数据
+    );
+
+async_transmitter #(.ClkFrequency(50000000),.Baud(115200)) //发送模块，9600无检验位
+    test_uart_t(
+        .clk	   (clk_50M    ),               //外部时钟信号
+        .TxD	   (rxd        ),               //串行信号输出
+        .TxD_busy  (test_tbusy ),       		//发送器忙状态指示
+        .TxD_start (test_tstart),     			//开始发送信号
+        .TxD_data  (test_tdata )          		//待发送的数据
+    );
+
+reg [ 7:0] rdata_buf  ;
+reg 	   rdata_buf_v;
+reg [47:0] tx_buf	  ;
+always @(posedge clk_50M) begin
+	if(reset_btn)
+		tx_buf <= {`STREAM,`ORDER_G,8'h0};
+	else if(rdata_buf == 8'h2e && ~test_tbusy)
+		tx_buf <= tx_buf >> 8;
+end
+assign test_tdata = tx_buf;
+
+always @(posedge clk_50M) begin
+	if(reset_btn)
+		rdata_buf <= 8'b0;
+	else if(test_rready)
+		rdata_buf 	<= test_rdata;
+end
+always @(posedge clk_50M) begin
+	if(reset_btn)
+		rdata_buf_v <= 1'b0;
+	else
+		rdata_buf_v <= test_rready;
+end
+
+initial begin
+	$display("==============================================================");
+    $display("==============================================================");
+    $display("=================   CRYPTONIGHT Test begin!   ================");
+end
+
+reg stop_r;
+always @(posedge clk_50M)begin
+	if(reset_btn)
+		stop_r <= 1'b0;
+	else if(~|tx_buf)
+		stop_r <= 1'b1;
+end
+
+always @(posedge clk_50M) begin
+	if(rdata_buf_v) begin
+		case(rdata_buf)
+			8'h4d:$display("M");
+			8'h4f:$display("O");
+			8'h4e:$display("N");
+			8'h49:$display("I");
+			8'h54:$display("T");
+			8'h52:$display("R");
+			8'h20:$display(" ");
+			8'h66:$display("f");
+			8'h6f:$display("o");
+			8'h72:$display("r");
+			8'h50:$display("P");
+			8'h53:$display("S");
+			8'h33:$display("3");
+			8'h32:$display("2");
+			8'h2d:$display("-");
+			8'h69:$display("i");
+			8'h6e:$display("n");
+			8'h74:$display("t");
+			8'h61:$display("a");
+			8'h6c:$display("l");
+			8'h7a:$display("z");
+			8'h65:$display("e");
+			8'h64:$display("d");
+			8'h2e:$display(".");
+			8'h06:$display("test begin");
+			8'h07:$display("test end");
+			default:
+			begin
+				$display("==============================================================");
+				$display("uart tx version err");
+				$display("==============================================================");
+				$stop;
+			end
+		endcase
+	end
+end
+
+always @(posedge clk_50M) begin
+	if(reset_btn)
+		test_tstart <= 1'b0;
+	else if(rdata_buf == 8'h2e && ~test_tbusy)
+		test_tstart <= 1'b1;
+end
+
+reg stop_r;
+always @(posedge clk_50M)begin
+	if(reset_btn)
+		stop_r <= 1'b0;
+	else if(~|tx_buf)
+		stop_r <= 1'b1;
+end
+
+reg [2:0] send_cnt;
+always @(posedge clk_50M) begin
+	if(reset_btn)
+		send_cnt <= 1'b0;
+	else if(rdata_buf == 8'h2e && ~test_tbusy && |tx_buf)
+		send_cnt <= send_cnt + 1;
+end
+
+always @(posedge clk_50M) begin
+	if(~|tx_buf && ~stop_r)
+		$display("=========================   Send 'G' finshed  ===========================");
+end
+
+always @(posedge clk_50M) begin
+	if(rdata_buf == 8'h07)
+		$finish;
+end
+
 endmodule

@@ -13,7 +13,7 @@ module cache(
     output wire        addr_ok  ,   //该次请求的地址传输OK，读：地址被接收； 写：地址和数据被接收
     output wire        data_ok  ,   //该次请求的数据传输OK，读：数据返回；   写：数据写入完成
     output wire [31:0] rdata    ,   //读Cache的结果
-	//Cache与sram接口的交互接口
+	//Cache与AXI总线接口的交互接口
     output wire        rd_req 	,   //读请求有效信号，高电平有效
     output wire [ 2:0] rd_type	,   //读请求类型。3'b000：字节，3'b001：半字 3'b010：字，3'b100：Cache行
     output wire [31:0] rd_addr	,   //读请求起始地址
@@ -49,7 +49,7 @@ wire        dirty_dout [1:0];
 
 wire cached;
 assign cached = c == 3'h3;
-//wire busy;   //新的访问与hit write冲突
+wire busy;   //新的访问与hit write冲突
 //main state machine
 reg  [2:0] m_prestate;
 wire [2:0] m_nexstate;
@@ -87,9 +87,7 @@ wire [ 3:0] offset_r;
 wire [ 3:0] wstrb_r ;  
 wire [31:0] wdata_r ;  
 always @(posedge clk) begin
-	if(reset)
-		request_buffer <= 70'b0;
-	else if(m_nexstate == LOOKUP)
+	if(m_nexstate == LOOKUP)
 		request_buffer <= {cached,op,index,tag,offset,wstrb,wdata};
 end
 assign {cached_r,op_r,index_r,tag_r,offset_r,wstrb_r,wdata_r} = request_buffer; 
@@ -99,7 +97,6 @@ wire [ 1:0] way_hit      ;
 wire [ 1:0] way_v        ;
 wire [19:0] way_tag [1:0];
 wire cache_hit;
-
 assign way_hit[0] = way_v[0] & (way_tag[0] == tag_r);
 assign way_hit[1] = way_v[1] & (way_tag[1] == tag_r);
 assign cache_hit  = (|way_hit) & cached_r; 
@@ -116,14 +113,14 @@ assign rdata              = {32{way_hit[0]}} & way_rdata[0] & {32{m_prestate == 
 						   
 //LFSR
 wire replace_way;
-reg D1,D2,D3,D4;
+reg D1,D2;
 assign replace_way = D1;
 
 always @(posedge clk) begin 
 	if(reset)
 		D1 <= 1'b1;
 	else
-		D1 <= D1 ^ D4;
+		D1 <= D1 ^ D2;
 end
 always @(posedge clk) begin
 	if(reset)
@@ -131,18 +128,7 @@ always @(posedge clk) begin
 	else
 		D2 <= D1;
 end
-always @(posedge clk) begin
-	if(reset)
-		D3 <= 1'b1;
-	else
-		D3 <= D2;
-end
-always @(posedge clk) begin
-	if(reset)
-		D4 <= 1'b0;
-	else
-		D4 <= D3;
-end
+
 //miss buffer
 wire [127:0] replace_data [1:0];
 assign replace_data[1] = {bank_rdata[7],bank_rdata[6],bank_rdata[5],bank_rdata[4]};
@@ -282,7 +268,7 @@ generate
 	for(i=0;i<2;i=i+1) begin
 	:TAGV
 		TAGV tagv (
-			.clka(clk)         	 	 ,     // input wire clka
+			.clka(clk)         	 ,     // input wire clka
 			.ena(tagv_ena[i])		 ,     // input wire ena
 			.wea(tagv_wea[i])		 ,     // input wire [0 : 0] wea
 			.addra(tagv_addr[i])	 ,     // input wire [7 : 0] addra
@@ -336,15 +322,19 @@ assign wr_data  = !cached_r ? {4{wdata_r}} : mbuff_replace_data;
 assign wr_req   = m_prestate == REPLACE && (mbuff_dirty_r || !cached_r && op_r); 
 assign rd_req   = m_prestate == REPLACE && !(!cached_r && op_r);
 
+assign busy = m_prestate == LOOKUP && op_r & cache_hit && 
+			  !op && {tag,index,offset} == {tag_r,index_r,offset_r} ||
+			  h_prestate == WRITE && 
+			  !op && offset[3:2] == offset_r[3:2];
 //main state machine
 assign m_nexstate = m_prestate == MIDLE ?
 					(
-						valid && !(h_prestate == WRITE && !op && offset[3:2] == w_offset_r[3:2]) ? LOOKUP : MIDLE
+						valid && !busy ? LOOKUP : MIDLE
 					):
 					m_prestate == LOOKUP ?
 					(
-						!cache_hit     															  ? MISS :
-						valid && !(op_r && !op && {tag,index,offset} == {tag_r,index_r,offset_r}) ? LOOKUP : MIDLE
+						!cache_hit     ? MISS :
+						valid && !busy ? LOOKUP : MIDLE
 					):
 					m_prestate == MISS ?
 					(
@@ -354,21 +344,20 @@ assign m_nexstate = m_prestate == MIDLE ?
 					(
 						rd_rdy ? REFILL : REPLACE
 					):
-					m_prestate == REFILL ?
+					//m_prestate == REFILL ?
 					(
 						!cached_r && (wr_wvalid && wr_wlast && op_r || ret_last && ret_valid && !op_r) ? MIDLE :
-						 cached_r &&  ret_valid && ret_last 						  				   ? MIDLE : REFILL
-					):
-					m_prestate;
+						 cached_r &&  ret_valid && ret_last 						  ? MIDLE : REFILL
+					);
+
 //hit wirte state machine
 assign h_nexstate = h_prestate == HIDLE ?
 					(
 						m_prestate == LOOKUP && cache_hit && op_r ? WRITE : HIDLE
 					):
-					h_prestate == WRITE ?
+					//h_prestate == WRITE ?
 					(
 						m_prestate == LOOKUP && cache_hit && op_r ? WRITE : HIDLE
-					):
-					h_prestate;
+					);
 
 endmodule
