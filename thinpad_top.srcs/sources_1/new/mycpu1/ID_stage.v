@@ -25,12 +25,10 @@ module id_stage(
 reg          ds_valid   ;
 wire         ds_ready_go;
 
-wire [31:0] fs_pc  ;
-wire [31:0] ds_pc  ;
-wire [31:0] ds_inst;
+wire [31                 :0] fs_pc;
 reg  [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus_r;
-
-
+wire [31:0] ds_inst;
+wire [31:0] ds_pc  ;
 assign {ds_inst,
         ds_pc  } = fs_to_ds_bus_r;
 assign fs_pc = ds_pc + 32'd4;
@@ -42,9 +40,7 @@ assign {rf_we   ,  //37:37
         rf_waddr,  //36:32
         rf_wdata   //31:0
        } = ws_to_rf_bus;
-	   
-wire        ds_is_b_insts;
-wire  		br_stall;
+
 wire        br_taken;
 wire [31:0] br_target;
 
@@ -59,6 +55,7 @@ wire [ 4:0] dest;
 wire [15:0] imm;
 wire [31:0] rs_value;
 wire [31:0] rt_value;
+
 wire [ 5:0] op;
 wire [ 4:0] rs;
 wire [ 4:0] rt;
@@ -113,17 +110,25 @@ wire inst_lw;
 wire inst_sb;
 wire inst_sw;
 
-wire dst_is_r31;  
-wire dst_is_rt ;   
+wire es_rs_hazard;
+wire es_rt_hazard;
+wire ms_rs_hazard;
+wire ms_rt_hazard;
+wire ws_rs_hazard;
+wire ws_rt_hazard;
+wire [2:0] sel_rs;
+wire [2:0] sel_rt;
+wire        dst_is_r31;  
+wire        dst_is_rt;   
 
 wire [ 4:0] rf_raddr1;
 wire [31:0] rf_rdata1;
 wire [ 4:0] rf_raddr2;
 wire [31:0] rf_rdata2;
 
-wire [ 4:0] es_dest_reg;
-wire [ 4:0] ms_dest_reg;
-wire [ 4:0] ws_dest_reg;
+wire [4:0]  es_dest_reg;
+wire [4:0]  ms_dest_reg;
+wire [4:0]  ws_dest_reg;
 wire [31:0] es_wreg_data;
 wire [31:0] ms_wreg_data;
 wire [31:0] ws_wreg_data;
@@ -132,12 +137,10 @@ wire        es_forward_valid;
 wire        ms_forward_valid;
 wire        ws_forward_valid;
 
-wire rs_eq_rt  ;
-wire rs_eq_zero;
-wire rs_g_zero ;
-wire rs_l_zero ;
+wire rs_eq_rt,rs_eq_zero,rs_g_zero,rs_l_zero;
 
-assign br_bus       = {br_stall,br_taken,br_target};
+
+assign br_bus       = {br_taken,br_target};
 assign ds_to_es_bus = {imm_signed_ext,  //137:137
                        alu_op        ,  //136:127
 					   inst_mul      ,  //126:126
@@ -157,9 +160,9 @@ assign ds_to_es_bus = {imm_signed_ext,  //137:137
                        ds_pc            //31 :0
                       };
 
-assign ds_allowin     = (!ds_valid || ds_ready_go) && es_allowin;
+assign ds_allowin     = !ds_valid || ds_ready_go && es_allowin;
 assign ds_to_es_valid = ds_valid && ds_ready_go;
-
+assign ds_ready_go = ~(lw_read_after_write && (es_rs_hazard || es_rt_hazard));
 always @(posedge clk) begin
 	if(reset)begin
 		ds_valid <= 1'b0;
@@ -249,20 +252,11 @@ assign src2_is_8      = inst_jal   | inst_jalr;
 assign dst_is_r31     = inst_jal;
 assign dst_is_rt      = inst_addiu | inst_lui | inst_lw   | inst_addi |  
                         inst_andi  | inst_ori | inst_xori | inst_lb;
-assign gr_we          = ~inst_sw   & ~inst_beq  & ~inst_bne & ~inst_jr & ~inst_bgez & ~inst_bgtz  &
+assign gr_we          = ~inst_sw   & ~inst_beq  & ~inst_bne & ~inst_jr & ~inst_mul & ~inst_bgez & ~inst_bgtz  &
                         ~inst_blez & ~inst_bltz & ~inst_j   & ~inst_sb ;
 assign dest           = dst_is_r31 ? 5'd31 :
                         dst_is_rt  ? rt    : 
                                      rd;
-
-wire es_rs_hazard;
-wire es_rt_hazard;
-wire ms_rs_hazard;
-wire ms_rt_hazard;
-wire ws_rs_hazard;
-wire ws_rt_hazard;
-wire [2:0] sel_rs;
-wire [2:0] sel_rt;
 
 //read from regfile
 assign rf_raddr1 = rs;
@@ -278,6 +272,20 @@ regfile u_regfile(
     .wdata  (rf_wdata )
     );
 
+wire rs_is_not_zero;
+wire rt_is_not_zero;
+assign rs_is_not_zero = |rs;
+assign rt_is_not_zero = |rt;
+assign {lw_read_after_write,es_forward_valid,es_wreg_data,es_dest_reg} = es_forward_bus;
+assign {ms_forward_valid,ms_wreg_data,ms_dest_reg} = ms_forward_bus;
+assign {ws_forward_valid,ws_wreg_data,ws_dest_reg} = ws_forward_bus;
+assign es_rs_hazard = (&(es_dest_reg ~^ rs)) & rs_is_not_zero & es_forward_valid;
+assign es_rt_hazard = (&(es_dest_reg ~^ rt)) & rt_is_not_zero & es_forward_valid;
+assign ms_rs_hazard = (&(ms_dest_reg ~^ rs)) & rs_is_not_zero & ms_forward_valid;
+assign ms_rt_hazard = (&(ms_dest_reg ~^ rt)) & rt_is_not_zero & ms_forward_valid;
+assign ws_rs_hazard = (&(ws_dest_reg ~^ rs)) & rs_is_not_zero & ws_forward_valid;
+assign ws_rt_hazard = (&(ws_dest_reg ~^ rt)) & rt_is_not_zero & ws_forward_valid;
+
 assign sel_rs = {es_rs_hazard,ms_rs_hazard,ws_rs_hazard};
 assign sel_rt = {es_rt_hazard,ms_rt_hazard,ws_rt_hazard};
 assign rs_value = (sel_rs[2]) ? es_wreg_data : 
@@ -289,13 +297,10 @@ assign rt_value = (sel_rt[2]) ? es_wreg_data :
                   (sel_rt[0]) ? ws_wreg_data :
                                     rf_rdata2;
 
-assign rs_eq_rt   = &(rs_value ~^ rt_value);
+assign rs_eq_rt = rs_value == rt_value;
 assign rs_eq_zero = ~|rs_value;               
 assign rs_g_zero  = ~rs_l_zero && ~rs_eq_zero;
 assign rs_l_zero  = rs_value[31];
-
-assign ds_is_b_insts = inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_jal | inst_jr | 						inst_j   | inst_jalr;
-assign br_stall = ds_is_b_insts && !ds_ready_go;
 assign br_taken = (   inst_beq  &&  rs_eq_rt
                    || inst_bne  && !rs_eq_rt
 				   || inst_bgez && (rs_g_zero || rs_eq_zero)
@@ -311,26 +316,5 @@ assign br_target = (inst_beq || inst_bne || inst_bgez || inst_bgtz || inst_blez 
 										  ? (fs_pc + {{14{imm[15]}}, imm[15:0], 2'b0}) :
                    (inst_jr || inst_jalr) ? rs_value :
                                             {fs_pc[31:28], jidx[25:0], 2'b0};
-
-
-wire rs_is_not_zero;
-wire rt_is_not_zero;
-assign rs_is_not_zero = |rs;
-assign rt_is_not_zero = |rt;
-
-assign {lw_read_after_write,es_forward_valid,es_wreg_data,es_dest_reg} = es_forward_bus;
-assign {ms_forward_valid,ms_wreg_data,ms_dest_reg} = ms_forward_bus;
-assign {ws_forward_valid,ws_wreg_data,ws_dest_reg} = ws_forward_bus;
-
-assign es_rs_hazard = (&(es_dest_reg ~^ rs)) & rs_is_not_zero & es_forward_valid;
-assign es_rt_hazard = (&(es_dest_reg ~^ rt)) & rt_is_not_zero & es_forward_valid;
-assign ms_rs_hazard = (&(ms_dest_reg ~^ rs)) & rs_is_not_zero & ms_forward_valid;
-assign ms_rt_hazard = (&(ms_dest_reg ~^ rt)) & rt_is_not_zero & ms_forward_valid;
-assign ws_rs_hazard = (&(ws_dest_reg ~^ rs)) & rs_is_not_zero & ws_forward_valid;
-assign ws_rt_hazard = (&(ws_dest_reg ~^ rt)) & rt_is_not_zero & ws_forward_valid;
-assign ds_ready_go = !(lw_read_after_write && es_rs_hazard | es_rt_hazard && ds_valid);
-
-
-
 
 endmodule

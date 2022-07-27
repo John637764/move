@@ -96,23 +96,6 @@ mycpu_top u_cpu(
     .debug_wb_rf_wdata()
 );
 
-//inst_ram inst_ram (
-//  .clka  (clk_20M),             // input wire clka
-//  .ena   (cpu_inst_en   ),      // input wire ena
-//  .wea   (cpu_inst_wen  ),      // input wire [3 : 0] wea
-//  .addra (cpu_inst_addr ),      // input wire [17 : 0] addra
-//  .dina  (cpu_inst_wdata),      // input wire [31 : 0] dina
-//  .douta (cpu_inst_rdata)      // output wire [31 : 0] douta
-//);
-//
-//data_ram data_ram (
-//  .clka  (clk_20M),             // input wire clka
-//  .ena   (cpu_data_en   ),      // input wire ena
-//  .wea   (cpu_data_wen  ),      // input wire [3 : 0] wea
-//  .addra (cpu_data_addr ),      // input wire [15 : 0] addra
-//  .dina  (cpu_data_wdata),      // input wire [31 : 0] dina
-//  .douta (cpu_data_rdata)      // output wire [31 : 0] douta
-//);
 
 sram_wrap u_base_ram_wrap(
 	.clk   (clk_20M  ),
@@ -150,65 +133,5 @@ sram_wrap u_ext_ram_wrap(
 	.sram_we_n (ext_ram_we_n)
 );	
 
-
-
-
-
-
-
-
-
-
-
-
-
-//wire[7:0] number;
-//
-////直连串口接收发送演示，从直连串口收到的数据再发送出去
-//wire [7:0] ext_uart_rx;
-//reg  [7:0] ext_uart_buffer, ext_uart_tx;
-//wire ext_uart_ready, ext_uart_clear, ext_uart_busy;
-//reg ext_uart_start, ext_uart_avai;
-//    
-//assign number = ext_uart_buffer;
-//
-//async_receiver #(.ClkFrequency(50000000),.Baud(9600)) //接收模块，9600无检验位
-//    ext_uart_r(
-//        .clk(clk_50M),                       //外部时钟信号
-//        .RxD(rxd),                           //外部串行信号输入
-//        .RxD_data_ready(ext_uart_ready),  	 //数据接收到标志
-//        .RxD_clear(ext_uart_clear),       	 //清除接收标志
-//        .RxD_data(ext_uart_rx)               //接收到的一字节数据
-//    );
-//
-//assign ext_uart_clear = ext_uart_ready; //收到数据的同时，清除标志，因为数据已取到ext_uart_buffer中
-//always @(posedge clk_50M) begin //接收到缓冲区ext_uart_buffer
-//    if(ext_uart_ready)begin
-//        ext_uart_buffer <= ext_uart_rx;
-//        ext_uart_avai <= 1;
-//    end else if(!ext_uart_busy && ext_uart_avai)begin 
-//        ext_uart_avai <= 0;
-//    end
-//end
-//always @(posedge clk_50M) begin //将缓冲区ext_uart_buffer发送出去
-//    if(!ext_uart_busy && ext_uart_avai)begin 
-//        ext_uart_tx <= ext_uart_buffer;
-//        ext_uart_start <= 1;
-//    end else begin 
-//        ext_uart_start <= 0;
-//    end
-//end
-//
-//async_transmitter #(.ClkFrequency(50000000),.Baud(9600)) //发送模块，9600无检验位
-//    ext_uart_t(
-//        .clk(clk_50M),                  //外部时钟信号
-//        .TxD(txd),                      //串行信号输出
-//        .TxD_busy(ext_uart_busy),       //发送器忙状态指示
-//        .TxD_start(ext_uart_start),     //开始发送信号
-//        .TxD_data(ext_uart_tx)          //待发送的数据
-//    );
-
-
-/* =========== Demo code end =========== */
 
 endmodule

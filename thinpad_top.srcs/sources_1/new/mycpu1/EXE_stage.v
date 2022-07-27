@@ -15,18 +15,16 @@ module exe_stage(
 	//forward_bus
 	output wire [`ES_FORWARD_BUS_WD -1:0] es_forward_bus,
     // data sram interface
-    output wire        data_req     		,
-    output wire [ 3:0] data_wstrb   		,
-    output wire [31:0] data_vaddr	    	,
-    output wire [31:0] data_wdata   		,
-    output wire        data_wr      		,
-    output wire [ 1:0] data_size    		,
-    input  wire        data_addr_ok 		,
+    output wire        data_sram_en   ,
+    output wire [ 3:0] data_sram_wen  ,
+    output wire [31:0] data_sram_addr ,
+    output wire [31:0] data_sram_wdata,
     output wire [63:0] mul_result         
 );
 
 reg         es_valid      ;
 wire        es_ready_go   ;
+
 reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;  
 wire        es_imm_signed_ext;
 wire [ 9:0] es_alu_op     ;
@@ -68,23 +66,17 @@ wire [31:0] es_alu_src1   ;
 wire [31:0] es_alu_src2   ;
 wire [31:0] es_alu_result ;
 
-wire es_mem_insts;
-assign es_mem_insts = es_inst_lb | es_inst_lw | es_inst_sb | es_inst_sw;
-
-assign es_to_ms_bus = {es_mem_insts     ,  // 73:73
-					   es_inst_mul      ,  // 72:72
+assign es_to_ms_bus = {es_inst_mul      ,  // 72:72
 					   es_inst_lb       ,  // 71:71
 					   es_inst_lw       ,  // 70:70
 					   es_gr_we         ,  // 69:69
                        es_dest          ,  // 68:64
                        es_alu_result    ,  // 63:32
-                       es_pc               // 31: 0
+                       es_pc               // 31:0
                       };
-wire mem_stall;
-assign mem_stall = es_mem_insts && !data_addr_ok && es_valid;
 
-assign es_ready_go    = !mem_stall;
-assign es_allowin     = (!es_valid || es_ready_go) && ms_allowin;
+assign es_ready_go    = 1'b1;
+assign es_allowin     = !es_valid || es_ready_go && ms_allowin;
 assign es_to_ms_valid =  es_valid && es_ready_go;
 always @(posedge clk) begin
     if (reset) begin
@@ -114,29 +106,24 @@ alu u_alu(
     .alu_src1     (es_alu_src1),
     .alu_src2     (es_alu_src2),
     .alu_result   (es_alu_result),
-	.mem_result   (data_vaddr),
+	.mem_result   (data_sram_addr),
     .mul_result   (mul_result)
 );
 
-assign data_req   =  es_mem_insts && es_valid && ms_allowin;
-assign data_size  =  es_inst_lw | es_inst_sw ? 2'b10 : 2'b00;
-assign data_wstrb =  es_inst_sw && es_valid ? 4'b1111 :
-					 es_inst_sb && es_valid ? 
-					 (
-						data_vaddr[1:0] == 2'b00 ? 4'b0001 :
-                        data_vaddr[1:0] == 2'b01 ? 4'b0010 :
-                        data_vaddr[1:0] == 2'b10 ? 4'b0100 :
-												   4'b1000
-					 )
-					 :4'b0000;
-					 
-assign data_wr 	  = |data_wstrb;					
-assign data_wdata = es_inst_sb ? {4{es_rt_value[7:0]}} : es_rt_value;
+assign data_sram_en  = 1'b1;
+assign data_sram_wen = es_inst_sw && es_valid ? 4'b1111 :
+                       es_inst_sb && es_valid ? 
+                          (data_sram_addr[1:0] == 2'b00 ? 4'b0001 :
+                           data_sram_addr[1:0] == 2'b01 ? 4'b0010 :
+                           data_sram_addr[1:0] == 2'b10 ? 4'b0100 :
+                                                          4'b1000 ) :
+												  4'b0000;
+
+assign data_sram_wdata = es_inst_sb ? {4{es_rt_value[ 7:0]}} : es_rt_value;
 //forward_bus
 wire mem_read_after_write;
 wire es_forward_valid;
 assign mem_read_after_write = (es_inst_lb || es_inst_lw || es_inst_mul) && es_valid;
 assign es_forward_valid = es_gr_we && es_valid;
 assign es_forward_bus = {mem_read_after_write,es_forward_valid,es_alu_result,es_dest};
-
 endmodule

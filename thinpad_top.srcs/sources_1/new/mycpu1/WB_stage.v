@@ -13,9 +13,9 @@ module wb_stage(
     //forward_bus
 	output wire [`FORWARD_BUS_WD -1 :0]  ws_forward_bus ,
 	//trace debug interface
-    output wire [31:0] debug_wb_pc       ,
-    output wire [ 3:0] debug_wb_rf_wen   ,
-    output wire [ 4:0] debug_wb_rf_wnum  ,
+    output wire [31:0] debug_wb_pc     ,
+    output wire [ 3:0] debug_wb_rf_wen ,
+    output wire [ 4:0] debug_wb_rf_wnum,
     output wire [31:0] debug_wb_rf_wdata
 );
 
@@ -34,7 +34,7 @@ assign {ws_gr_we       ,  //69:69
        } = ms_to_ws_bus_r;
 
 wire        rf_we;
-wire [ 4:0] rf_waddr;
+wire [4 :0] rf_waddr;
 wire [31:0] rf_wdata;
 assign ws_to_rf_bus = {rf_we   ,  //37:37
                        rf_waddr,  //36:32
@@ -56,7 +56,7 @@ always @(posedge clk) begin
     end
 end
 
-assign rf_we    = ws_gr_we & ws_valid;
+assign rf_we    = ws_gr_we&&ws_valid;
 assign rf_waddr = ws_dest;
 assign rf_wdata = ws_final_result;
 
@@ -67,7 +67,6 @@ assign debug_wb_rf_wnum  = ws_dest;
 assign debug_wb_rf_wdata = ws_final_result;
 // forward info generate
 wire ws_forward_valid;
-assign ws_forward_valid = rf_we && ws_valid;
+assign ws_forward_valid = rf_we;
 assign ws_forward_bus   = {ws_forward_valid,ws_final_result,ws_dest};
-
 endmodule
