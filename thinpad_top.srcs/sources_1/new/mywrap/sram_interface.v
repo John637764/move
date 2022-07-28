@@ -30,8 +30,8 @@ module sram_interface (
     input  wire [  3:0] d_wr_wstrb  ,   //写操作的字节掩码，仅在写请求类型不为Cache行的情况下才有意义
     input  wire [127:0] d_wr_data   ,   //写数据
     output wire         d_wr_rdy    ,   //写请求能否被接收的握手信号，高电平有效
-//	output wire         d_wr_wvalid ,
-//	output wire         d_wr_wlast  ,
+	output wire         d_wr_wvalid ,
+	output wire         d_wr_wlast  ,
     //sram 接口
 	//BaseRAM信号
  	input  wire  [31:0] base_ram_rdata,  //BaseRAM读入数据
@@ -93,8 +93,10 @@ end
 assign i_rd_rdy    = !ib_rd_cnt && !(db_rd_cnt && (d_rd_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR || 
 									 db_wr_cnt && (d_wr_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR);
 assign i_ret_valid = |ib_rd_cnt && !(db_rd_cnt || db_wr_cnt) && !(ib_rd_cnt == 3'd1 && 
-																 (de_rd_cnt > 3'd1 || de_wr_cnt > 3'd1));
-assign i_ret_last  = ib_rd_cnt == 3'd1 && !(de_rd_cnt > 3'd1 || de_wr_cnt > 3'd1);
+																 (de_rd_cnt > 3'd1 || de_wr_cnt > 3'd1)) ||
+					 !ib_rd_cnt && i_addr_buf_v;
+assign i_ret_last  = ib_rd_cnt == 3'd1 && !(de_rd_cnt > 3'd1 || de_wr_cnt > 3'd1) && !(db_rd_cnt || db_wr_cnt) || 
+					 !ib_rd_cnt && i_addr_buf_v;
 assign i_ret_data  = inst_last_buf_v ? inst_last_buf : base_ram_rdata;
 assign i_wr_rdy    = 1'b1;
 
@@ -173,7 +175,7 @@ always @(posedge clk)begin
 	else if(ib_rd_cnt && (d_rd_req && (d_rd_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR || 
 					 d_wr_req && (d_wr_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR))
 		i_addr_buf_v <= 1'b1;
-	else if(i_addr_buf_v && (i_addr_buf_v && d_ret_last))
+	else if(i_addr_buf_v && i_ret_last && i_ret_valid)
 		i_addr_buf_v <= 1'b0;
 end
 always @(posedge clk)begin
@@ -188,7 +190,7 @@ always @(posedge clk)begin
 		w_buf <= w_buf >> 32;
 end
 always @(posedge clk)begin
-	if(!db_wr_cnt)
+	if(d_wr_req)
 		base_ram_wdata <= d_wr_data[31:0];
 	else
 		base_ram_wdata <= w_buf[31:0];
@@ -236,7 +238,7 @@ always @(posedge clk)begin
 end
 
 always @(posedge clk)begin
-	if(!de_wr_cnt)
+	if(d_wr_req)
 		ext_ram_wdata <= d_wr_data[31:0];
 	else
 		ext_ram_wdata <= w_buf[31:0];

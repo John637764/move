@@ -183,8 +183,9 @@ end
 `define CRYPTONIGHT 32'h800030c4
 `define STREAM		32'h8000300c
 `define MATRIX		32'h8000303c
-`define ORDER_G		8'h47
-`define ORDER_D 	8'h44
+`define ORDER_G		 8'h47
+`define ORDER_D 	 8'h44
+`define TEST_NUM     8'h8
 
 wire 	   test_rready;
 wire 	   test_rclear;
@@ -197,7 +198,7 @@ reg [2:0] task_cnt;
 
 assign test_rclear = test_rready;
 
-async_receiver #(.ClkFrequency(50000000),.Baud(115200)) //接收模块，9600无检验位
+async_receiver #(.ClkFrequency(50000000),.Baud(1152000)) //接收模块，9600无检验位
     test_uart_r(
         .clk		    (clk_50M	),          //外部时钟信号
         .RxD		    (txd		),          //外部串行信号输入
@@ -206,7 +207,7 @@ async_receiver #(.ClkFrequency(50000000),.Baud(115200)) //接收模块，9600无
         .RxD_data 	    (test_rdata )           //接收到的一字节数据
     );
 
-async_transmitter #(.ClkFrequency(50000000),.Baud(115200)) //发送模块，9600无检验位
+async_transmitter #(.ClkFrequency(50000000),.Baud(1152000)) //发送模块，9600无检验位
     test_uart_t(
         .clk	   (clk_50M    ),               //外部时钟信号
         .TxD	   (rxd        ),               //串行信号输出
@@ -217,10 +218,10 @@ async_transmitter #(.ClkFrequency(50000000),.Baud(115200)) //发送模块，9600
 
 reg [ 7:0] rdata_buf  ;
 reg 	   rdata_buf_v;
-reg [47:0] tx_buf	  ;
+reg [55:0] tx_buf	  ;
 always @(posedge clk_50M) begin
 	if(reset_btn)
-		tx_buf <= {`STREAM,`ORDER_G,8'h0};
+		tx_buf <= {`TEST_NUM,`TEST_ADDR,`ORDER_D,8'h0};
 	else if(rdata_buf == 8'h2e && ~test_tbusy)
 		tx_buf <= tx_buf >> 8;
 end

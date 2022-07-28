@@ -69,6 +69,8 @@ module bridge_1x2(
 	output wire [  3:0] b_d_wr_wstrb  ,   //写操作的字节掩码，仅在写请求类型不为Cache行的情况下才有意义
 	output wire [127:0] b_d_wr_data   ,   //写数据
 	input  wire         b_d_wr_rdy    ,   //写请求能否被接收的握手信号，高电平有效
+	output wire         b_d_wr_wvalid ,   //uncached的写请求响应
+	output wire         b_d_wr_wlast  ,   //uncached的写请求响应
 
     output wire        conf_en,          // access confreg enable 
     output wire [ 3:0] conf_wen,         // access confreg enable 
@@ -104,8 +106,8 @@ assign d_ret_last  = sel_sram_r&b_d_ret_last  | sel_conf_r;
 assign d_ret_data  = {32{sel_sram_r}} & b_d_ret_data | {32{sel_conf_r}} & conf_rdata;
 
 assign d_wr_rdy    = sel_sram&b_d_wr_rdy | sel_conf;
-assign d_wr_wvalid = sel_conf_r;
-assign d_wr_wlast  = sel_conf_r;
+assign d_wr_wvalid = sel_conf_r | b_d_wr_wvalid;
+assign d_wr_wlast  = sel_conf_r | b_d_wr_wlast;
 assign b_d_wr_req  = sel_sram&d_wr_req;
 assign b_d_wr_type = d_wr_type    ;
 assign b_d_wr_addr = d_wr_addr    ;

@@ -188,7 +188,7 @@ assign i_rd_req  = inst_req;
 assign i_rd_type = 3'b010;
 assign i_rd_addr = inst_vaddr;
 assign inst_addr_ok = 1'b1;
-assign inst_data_ok = 1'b1;
+assign inst_data_ok = i_ret_last&i_ret_valid;
 assign inst_rdata   = i_ret_data;
 
 assign d_rd_req     = data_req & !data_wr;
@@ -196,7 +196,7 @@ assign d_rd_type    = 3'b010;
 assign d_rd_addr    = data_vaddr;
 assign data_addr_ok = 1'b1;
 assign data_rdata   = d_ret_data;
-assign data_data_ok = 1'b1;
+assign data_data_ok = d_ret_last&d_ret_valid || d_wr_wlast&d_wr_wvalid;
 
 assign d_wr_req  = data_req & data_wr;
 assign d_wr_type = 3'b010;
@@ -204,8 +204,7 @@ assign d_wr_addr = data_vaddr;
 assign d_wr_wstrb= data_wstrb;
 assign d_wr_data = data_wdata;
 
-assign inst_addr_ok = 1'b1;
-assign inst_data_ok = 1'b1;
+
 
 
 /*

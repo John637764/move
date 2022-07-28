@@ -16,7 +16,8 @@ module confreg(
 	input  wire [3 :0] conf_wen,      
 	input  wire [31:0] conf_addr,    
 	input  wire [31:0] conf_wdata,   
-	output wire [31:0] conf_rdata,   
+	output wire [31:0] conf_rdata,
+
     // read and write to device on board
 	output wire txd,  //直连串口发送端
 	input  wire rxd   //直连串口接收端
@@ -24,7 +25,11 @@ module confreg(
 
 wire [7:0] uart_rdata;
 
-reg tx_start;
+reg 	  tx_start   ;
+reg [7:0] ext_uart_tx;
+always @(posedge clk)begin
+	ext_uart_tx <= conf_wdata[7:0];
+end
 always @(posedge clk)begin
 	if(reset)
 		tx_start <= 1'b0;
@@ -37,7 +42,7 @@ wire tx_busy;
 always @(posedge clk) begin
 	if(reset)
 		tx_flag <= 1'b1;
-	else if(conf_en)
+	else
 		tx_flag <= ~tx_busy;
 end
 
@@ -46,7 +51,7 @@ wire rx_valid;
 always @(posedge clk) begin
 	if(reset)
 		rx_flag <= 1'b0;
-	else if(conf_en)
+	else 
 		rx_flag <= rx_valid;
 end
 
@@ -74,7 +79,8 @@ always @(posedge clk)begin
 end
 assign conf_rdata = conf_rdata_reg;
 
-uart #(.ClkFrequency(50000000),.Baud(115200))
+
+uart #(.ClkFrequency(50000000),.Baud(9600))
 	uart1(
 		.clk   			(clk  	   ),
 		.rxd            (rxd       ),
@@ -82,10 +88,10 @@ uart #(.ClkFrequency(50000000),.Baud(115200))
 		.ext_uart_clear (data_revd ),
 		.ext_uart_rx    (uart_rdata),
 		              
-		.txd            (txd            ),
-		.ext_uart_busy  (tx_busy        ),
-		.ext_uart_start (tx_start       ),
-		.ext_uart_tx    (conf_wdata[7:0])
+		.txd            (txd         ),
+		.ext_uart_busy  (tx_busy     ),
+		.ext_uart_start (tx_start    ),
+		.ext_uart_tx    (ext_uart_tx )
 );
 
 endmodule

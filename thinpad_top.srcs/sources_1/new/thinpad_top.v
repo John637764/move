@@ -99,6 +99,8 @@ wire [ 31:0] b_d_wr_addr   ;   //写请求起始地址
 wire [  3:0] b_d_wr_wstrb  ;   //写操作的字节掩码，仅在写请求类型不为Cache行的情况下才有意义
 wire [127:0] b_d_wr_data   ;   //写数据
 wire         b_d_wr_rdy    ;   //写请求能否被接收的握手信号，高电平有效
+wire         b_d_wr_wvalid ;   //uncached的写请求响应
+wire         b_d_wr_wlast  ;   //uncached的写请求响应
 
 wire         conf_en   ;       
 wire [  3:0] conf_wen  ;       
@@ -196,6 +198,8 @@ bridge_1x2 u_bridge(
 	.b_d_wr_wstrb  (b_d_wr_wstrb ),   //写操作的字节掩码，仅在写请求类型不为Cache行的情况下才有意义
 	.b_d_wr_data   (b_d_wr_data  ),   //写数据
 	.b_d_wr_rdy    (b_d_wr_rdy   ),   //写请求能否被接收的握手信号，高电平有效
+	.b_d_wr_wvalid (b_d_wr_wvalid),
+	.b_d_wr_wlast  (b_d_wr_wlast ),
 
     .conf_en       (conf_en      ),   // access confreg enable 
     .conf_wen      (conf_wen     ),   // access confreg enable 
@@ -231,6 +235,8 @@ sram_interface u_sram(
     .d_wr_wstrb  (b_d_wr_wstrb 	 ),   //写操作的字节掩码，仅在写请求类型不为Cache行的情况下才有意义
     .d_wr_data   (b_d_wr_data  	 ),   //写数据
     .d_wr_rdy    (b_d_wr_rdy   	 ),   //写请求能否被接收的握手信号，高电平有效
+	.d_wr_wvalid (b_d_wr_wvalid  ),
+	.d_wr_wlast  (b_d_wr_wlast   ),	
     //sram 接口
 	//BaseRAM信号
  	.base_ram_rdata (base_ram_data),  //BaseRAM读入数据
