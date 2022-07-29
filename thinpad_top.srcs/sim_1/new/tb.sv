@@ -183,6 +183,7 @@ end
 `define CRYPTONIGHT 32'h800030c4
 `define STREAM		32'h8000300c
 `define MATRIX		32'h8000303c
+`define ORDER_A		 8'h41
 `define ORDER_G		 8'h47
 `define ORDER_D 	 8'h44
 `define TEST_NUM     8'h8
@@ -221,7 +222,7 @@ reg 	   rdata_buf_v;
 reg [55:0] tx_buf	  ;
 always @(posedge clk_50M) begin
 	if(reset_btn)
-		tx_buf <= {`TEST_NUM,`TEST_ADDR,`ORDER_D,8'h0};
+		tx_buf <= {`TEST_ADDR,`ORDER_A,8'h0};
 	else if(rdata_buf == 8'h2e && ~test_tbusy)
 		tx_buf <= tx_buf >> 8;
 end

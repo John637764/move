@@ -146,8 +146,8 @@ mycpu_top u_cpu(
 );
 
 bridge_1x2 u_bridge(                                 
-    .clk           (slave_clk),          // clock 
-    .reset         (cpu_reset),        // reset, active high
+    .clk           (slave_clk),       // clock 
+    .reset         (cpu_reset),       // reset, active high
     // master : cpu data
 	.i_rd_req 	   (i_rd_req 	 ),   //读请求有效信号，高电平有效
 	.i_rd_type	   (i_rd_type	 ),   //读请求类型。3'b000：字节，3'b001：半字 3'b010：字，3'b100：Cache行
@@ -207,6 +207,7 @@ bridge_1x2 u_bridge(
     .conf_wdata    (conf_wdata   ),   // write data
     .conf_rdata    (conf_rdata   )    // read data
 );
+
 
 sram_interface u_sram(
     .clk   (slave_clk),   

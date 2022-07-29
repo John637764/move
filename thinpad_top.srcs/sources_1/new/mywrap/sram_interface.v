@@ -50,13 +50,16 @@ module sram_interface (
     output reg    	    ext_ram_oe_n  ,   //ExtRAM读使能，低有效
     output reg    	    ext_ram_we_n      //ExtRAM写使能，低有效
 );
-wire         d_wr_wvalid ;
-wire         d_wr_wlast  ;
-reg [2:0] ib_rd_cnt;	//icache读base ram计数器
-reg [2:0] db_rd_cnt;	//dcache读base ram计数器
-reg [2:0] db_wr_cnt;	//dcache写base ram计数器
-reg [2:0] de_rd_cnt;	//dcache读ext  ram计数器
-reg [2:0] de_wr_cnt;	//dcache写ext  ram计数器
+
+reg [ 2:0] ib_rd_cnt;	//icache读base ram计数器
+reg [ 2:0] db_rd_cnt;	//dcache读base ram计数器
+reg [ 2:0] db_wr_cnt;	//dcache写base ram计数器
+reg [ 2:0] de_rd_cnt;	//dcache读ext  ram计数器
+reg [ 2:0] de_wr_cnt;	//dcache写ext  ram计数器
+
+reg [95:0] w_buf;
+reg [19:0] i_addr_buf;
+reg 	   i_addr_buf_v;
 
 always @(posedge clk)begin
 	if(reset)
@@ -68,7 +71,7 @@ always @(posedge clk)begin
 			default: ib_rd_cnt <= 3'd0;
 		endcase
 	end
-	else if(ib_rd_cnt && !(db_rd_cnt > 3'd1 || db_wr_cnt > 3'd1                      ||
+	else if(ib_rd_cnt && !(db_rd_cnt || db_wr_cnt                                    ||
 						   d_rd_req && (d_rd_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR  ||
 						   d_wr_req && (d_wr_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR) &&
 						 !(ib_rd_cnt == 3'd1 && (de_rd_cnt > 3'd1 || de_wr_cnt > 3'd1)))
@@ -86,17 +89,16 @@ always @(posedge clk)begin
 		inst_last_buf_v <= 1'b0;
 	else if(ib_rd_cnt == 3'd1 && (de_rd_cnt > 3'd1 || de_wr_cnt > 3'd1))
 		inst_last_buf_v <= 1'b1;
-	else if(inst_last_buf_v && i_ret_last)
+	else if(inst_last_buf_v && i_ret_last && i_ret_valid)
 		inst_last_buf_v <= 1'b0;
 end
 
-assign i_rd_rdy    = !ib_rd_cnt && !(db_rd_cnt && (d_rd_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR || 
-									 db_wr_cnt && (d_wr_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR);
+assign i_rd_rdy    = !ib_rd_cnt && !(d_rd_req && (d_rd_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR || 
+									 d_wr_req && (d_wr_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR)
+								&& !(db_rd_cnt || db_wr_cnt);
 assign i_ret_valid = |ib_rd_cnt && !(db_rd_cnt || db_wr_cnt) && !(ib_rd_cnt == 3'd1 && 
-																 (de_rd_cnt > 3'd1 || de_wr_cnt > 3'd1)) ||
-					 !ib_rd_cnt && i_addr_buf_v;
-assign i_ret_last  = ib_rd_cnt == 3'd1 && !(de_rd_cnt > 3'd1 || de_wr_cnt > 3'd1) && !(db_rd_cnt || db_wr_cnt) || 
-					 !ib_rd_cnt && i_addr_buf_v;
+																 (de_rd_cnt > 3'd1 || de_wr_cnt > 3'd1));
+assign i_ret_last  = ib_rd_cnt == 3'd1 && !(de_rd_cnt > 3'd1 || de_wr_cnt > 3'd1) && !(db_rd_cnt || db_wr_cnt);
 assign i_ret_data  = inst_last_buf_v ? inst_last_buf : base_ram_rdata;
 assign i_wr_rdy    = 1'b1;
 
@@ -156,7 +158,7 @@ always @(posedge clk)begin
 		de_wr_cnt <= de_wr_cnt - 1;
 end
 
-assign d_rd_rdy    = !db_rd_cnt && !db_wr_cnt;
+assign d_rd_rdy    = !db_rd_cnt && !de_rd_cnt;
 assign d_ret_valid = |db_rd_cnt || |de_rd_cnt;
 assign d_ret_last  = db_rd_cnt == 3'd1 || de_rd_cnt == 3'd1;
 assign d_ret_data  = db_rd_cnt ? base_ram_rdata : ext_ram_rdata;
@@ -166,14 +168,11 @@ assign d_wr_rdy    = !db_wr_cnt && !de_wr_cnt;
 assign d_wr_wvalid = |db_wr_cnt || |de_wr_cnt;
 assign d_wr_wlast  = db_wr_cnt == 3'd1 || de_wr_cnt == 3'd1;
 
-reg [95:0] w_buf;
-reg [19:0] i_addr_buf;
-reg 	   i_addr_buf_v;
 always @(posedge clk)begin
 	if(reset)
 		i_addr_buf_v <= 1'b0;
 	else if(ib_rd_cnt && (d_rd_req && (d_rd_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR || 
-					 d_wr_req && (d_wr_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR))
+						  d_wr_req && (d_wr_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR))
 		i_addr_buf_v <= 1'b1;
 	else if(i_addr_buf_v && i_ret_last && i_ret_valid)
 		i_addr_buf_v <= 1'b0;
@@ -198,11 +197,11 @@ end
 always @(posedge clk)begin
 	if(d_wr_req && (d_wr_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR)
 		base_ram_addr <= d_wr_addr[21:2];
-	else if(d_rd_req && !db_wr_cnt && (d_rd_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR)
+	else if(d_rd_req && !(db_wr_cnt > 3'd1) && (d_rd_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR)
 		base_ram_addr <= d_rd_addr[21:2];
-	else if(i_rd_req && !db_wr_cnt && !db_rd_cnt && (i_rd_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR)
+	else if(i_rd_req && !(db_wr_cnt > 3'd1 || db_rd_cnt > 3'd1) && (i_rd_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR)
 		base_ram_addr <= i_rd_addr[21:2];
-	else if(i_addr_buf_v && d_ret_last)
+	else if(i_addr_buf_v && (d_ret_last || d_wr_wlast))
 		base_ram_addr <= i_addr_buf;
 	else
 		base_ram_addr <= base_ram_addr + 1;
@@ -211,13 +210,13 @@ always @(posedge clk)begin
 	if(reset)
 		base_ram_be_n <= 4'hf;
 	else
-		base_ram_be_n <= 4'h0;
+		base_ram_be_n <= ~(d_wr_req ? d_wr_wstrb : 4'hf);
 end
 always @(posedge clk)begin
 	if(reset)
 		base_ram_ce_n <= 1'b1;
 	else
-		base_ram_ce_n <= ~(d_wr_req && (d_wr_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR || 
+		base_ram_ce_n <= ~(d_wr_req && (d_wr_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR ||
 						   d_rd_req && (d_rd_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR ||
 						   i_rd_req && (i_rd_addr&`BASE_RAM_MASK) == `BASE_RAM_ADDR ||
 						   ib_rd_cnt && !i_ret_last || db_rd_cnt && !d_ret_last || db_wr_cnt && !d_wr_wlast);
@@ -255,7 +254,7 @@ always @(posedge clk)begin
 	if(reset)
 		ext_ram_be_n <= 4'hf;
 	else
-		ext_ram_be_n <= 4'h0;
+		ext_ram_be_n <= ~(d_wr_req ? d_wr_wstrb : 4'hf);
 end
 always @(posedge clk)begin
 	if(reset)

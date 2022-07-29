@@ -16,6 +16,7 @@
 `define CONF_ADDR_MASK 32'hffff_fffb //for bfd0_03f8 or bfd0_03fc
 `define RAM_ADDR_BASE  32'h8000_0000 
 `define RAM_ADDR_MASK  32'hff80_0000 //for 8000_0000 ~ 807f_ffff
+
 module bridge_1x2(                                 
     input  wire clk,          // clock 
     input  wire reset,        // reset, active high
@@ -69,8 +70,8 @@ module bridge_1x2(
 	output wire [  3:0] b_d_wr_wstrb  ,   //写操作的字节掩码，仅在写请求类型不为Cache行的情况下才有意义
 	output wire [127:0] b_d_wr_data   ,   //写数据
 	input  wire         b_d_wr_rdy    ,   //写请求能否被接收的握手信号，高电平有效
-	output wire         b_d_wr_wvalid ,   //uncached的写请求响应
-	output wire         b_d_wr_wlast  ,   //uncached的写请求响应
+	input  wire         b_d_wr_wvalid ,   //uncached的写请求响应
+	input  wire         b_d_wr_wlast  ,   //uncached的写请求响应
 
     output wire        conf_en,          // access confreg enable 
     output wire [ 3:0] conf_wen,         // access confreg enable 
@@ -106,12 +107,12 @@ assign d_ret_last  = sel_sram_r&b_d_ret_last  | sel_conf_r;
 assign d_ret_data  = {32{sel_sram_r}} & b_d_ret_data | {32{sel_conf_r}} & conf_rdata;
 
 assign d_wr_rdy    = sel_sram&b_d_wr_rdy | sel_conf;
-assign d_wr_wvalid = sel_conf_r | b_d_wr_wvalid;
-assign d_wr_wlast  = sel_conf_r | b_d_wr_wlast;
+assign d_wr_wvalid = sel_conf_r | b_d_wr_wvalid&sel_sram_r;
+assign d_wr_wlast  = sel_conf_r | b_d_wr_wlast &sel_sram_r;
 assign b_d_wr_req  = sel_sram&d_wr_req;
 assign b_d_wr_type = d_wr_type    ;
 assign b_d_wr_addr = d_wr_addr    ;
-assign b_d_wr_wstrb= d_wr_wstrb   ;
+assign b_d_wr_wstrb= d_wr_wstrb&{4{sel_sram}};
 assign b_d_wr_data = d_wr_data    ;
 
 // confreg
@@ -127,7 +128,7 @@ begin
         sel_sram_r <= 1'b0;
         sel_conf_r <= 1'b0;
     end
-    else
+    else if(d_rd_req | d_wr_req)
     begin
         sel_sram_r <= sel_sram;
         sel_conf_r <= sel_conf;

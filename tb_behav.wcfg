@@ -11,21 +11,24 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="3330489000fs"></ZoomStartTime>
-      <ZoomEndTime time="3330735001fs"></ZoomEndTime>
-      <Cursor1Time time="3330510000fs"></Cursor1Time>
+      <ZoomStartTime time="397364166fs"></ZoomStartTime>
+      <ZoomEndTime time="397611167fs"></ZoomEndTime>
+      <Cursor1Time time="397385966fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="253"></NameColumnWidth>
-      <ValueColumnWidth column_width="125"></ValueColumnWidth>
+      <ValueColumnWidth column_width="120"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="30" />
+   <WVObjectSize size="48" />
    <wave_markers>
       <marker time="1763010000" label="" />
       <marker time="1763070000" label="" />
       <marker time="1666330000" label="" />
       <marker time="1589310000" label="" />
       <marker time="1589170000" label="" />
+      <marker time="388710000" label="" />
+      <marker time="388690000" label="" />
+      <marker time="388470000" label="" />
    </wave_markers>
    <wvobject fp_name="/tb/dut/cpu_reset" type="logic">
       <obj_property name="ElementShortName">cpu_reset</obj_property>
@@ -41,6 +44,10 @@
       <obj_property name="CustomSignalColor">#FF00FF</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
+   <wvobject fp_name="/tb/dut/u_cpu/if_stage/inst_req" type="logic">
+      <obj_property name="ElementShortName">inst_req</obj_property>
+      <obj_property name="ObjectShortName">inst_req</obj_property>
+   </wvobject>
    <wvobject fp_name="/tb/dut/u_cpu/if_stage/inst_addr_ok" type="logic">
       <obj_property name="ElementShortName">inst_addr_ok</obj_property>
       <obj_property name="ObjectShortName">inst_addr_ok</obj_property>
@@ -51,6 +58,22 @@
       <obj_property name="CustomSignalColor">#FF00FF</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
+   <wvobject fp_name="/tb/dut/u_sram/i_ret_valid" type="logic">
+      <obj_property name="ElementShortName">i_ret_valid</obj_property>
+      <obj_property name="ObjectShortName">i_ret_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/u_sram/i_ret_last" type="logic">
+      <obj_property name="ElementShortName">i_ret_last</obj_property>
+      <obj_property name="ObjectShortName">i_ret_last</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/u_sram/ib_rd_cnt" type="array">
+      <obj_property name="ElementShortName">ib_rd_cnt[2:0]</obj_property>
+      <obj_property name="ObjectShortName">ib_rd_cnt[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/u_sram/db_rd_cnt" type="array">
+      <obj_property name="ElementShortName">db_rd_cnt[2:0]</obj_property>
+      <obj_property name="ObjectShortName">db_rd_cnt[2:0]</obj_property>
+   </wvobject>
    <wvobject fp_name="/tb/dut/u_cpu/if_stage/inst_data_ok" type="logic">
       <obj_property name="ElementShortName">inst_data_ok</obj_property>
       <obj_property name="ObjectShortName">inst_data_ok</obj_property>
@@ -58,6 +81,22 @@
    <wvobject fp_name="/tb/dut/u_cpu/if_stage/fs_inst" type="array">
       <obj_property name="ElementShortName">fs_inst[31:0]</obj_property>
       <obj_property name="ObjectShortName">fs_inst[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/u_sram/base_ram_ce_n" type="logic">
+      <obj_property name="ElementShortName">base_ram_ce_n</obj_property>
+      <obj_property name="ObjectShortName">base_ram_ce_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/u_sram/base_ram_oe_n" type="logic">
+      <obj_property name="ElementShortName">base_ram_oe_n</obj_property>
+      <obj_property name="ObjectShortName">base_ram_oe_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/u_sram/base_ram_we_n" type="logic">
+      <obj_property name="ElementShortName">base_ram_we_n</obj_property>
+      <obj_property name="ObjectShortName">base_ram_we_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/u_sram/base_ram_be_n" type="array">
+      <obj_property name="ElementShortName">base_ram_be_n[3:0]</obj_property>
+      <obj_property name="ObjectShortName">base_ram_be_n[3:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/tb/dut/u_cpu/id_stage/ds_pc" type="array">
       <obj_property name="ElementShortName">ds_pc[31:0]</obj_property>
@@ -71,6 +110,10 @@
       <obj_property name="CustomSignalColor">#FF00FF</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
+   <wvobject fp_name="/tb/dut/u_cpu/exe_stage/data_wdata" type="array">
+      <obj_property name="ElementShortName">data_wdata[31:0]</obj_property>
+      <obj_property name="ObjectShortName">data_wdata[31:0]</obj_property>
+   </wvobject>
    <wvobject fp_name="/tb/dut/u_cpu/exe_stage/es_alu_result" type="array">
       <obj_property name="ElementShortName">es_alu_result[31:0]</obj_property>
       <obj_property name="ObjectShortName">es_alu_result[31:0]</obj_property>
@@ -80,6 +123,24 @@
       <obj_property name="ObjectShortName">ms_pc[31:0]</obj_property>
       <obj_property name="CustomSignalColor">#FF00FF</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/u_cpu/wb_stage/debug_wb_pc" type="array">
+      <obj_property name="ElementShortName">debug_wb_pc[31:0]</obj_property>
+      <obj_property name="ObjectShortName">debug_wb_pc[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/u_cpu/wb_stage/debug_wb_rf_wen" type="array">
+      <obj_property name="ElementShortName">debug_wb_rf_wen[3:0]</obj_property>
+      <obj_property name="ObjectShortName">debug_wb_rf_wen[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/u_cpu/wb_stage/debug_wb_rf_wnum" type="array">
+      <obj_property name="ElementShortName">debug_wb_rf_wnum[4:0]</obj_property>
+      <obj_property name="ObjectShortName">debug_wb_rf_wnum[4:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/u_cpu/wb_stage/debug_wb_rf_wdata" type="array">
+      <obj_property name="ElementShortName">debug_wb_rf_wdata[31:0]</obj_property>
+      <obj_property name="ObjectShortName">debug_wb_rf_wdata[31:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/tb/dut/u_cpu/mem_stage/data_rdata" type="array">
       <obj_property name="ElementShortName">data_rdata[31:0]</obj_property>
@@ -164,5 +225,21 @@
    <wvobject fp_name="/tb/dut/u_confreg/uart_rdata" type="array">
       <obj_property name="ElementShortName">uart_rdata[7:0]</obj_property>
       <obj_property name="ObjectShortName">uart_rdata[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/u_confreg/uart1/ext_uart_start" type="logic">
+      <obj_property name="ElementShortName">ext_uart_start</obj_property>
+      <obj_property name="ObjectShortName">ext_uart_start</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/u_confreg/uart1/ext_uart_tx" type="array">
+      <obj_property name="ElementShortName">ext_uart_tx[7:0]</obj_property>
+      <obj_property name="ObjectShortName">ext_uart_tx[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/test_rready" type="logic">
+      <obj_property name="ElementShortName">test_rready</obj_property>
+      <obj_property name="ObjectShortName">test_rready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/test_rdata" type="array">
+      <obj_property name="ElementShortName">test_rdata[7:0]</obj_property>
+      <obj_property name="ObjectShortName">test_rdata[7:0]</obj_property>
    </wvobject>
 </wave_config>
