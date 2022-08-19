@@ -5,7 +5,6 @@
 
 __start:
 .text
-	ori $a0, 0x3		# $a0 = 3
     lui $a1, 0x8040     # $a1 = 0x803ffffc
 	addi $a1,$a1,-4
 	lui $a2, 0x8050		# $a2 = 0x80500000
@@ -17,12 +16,13 @@ loop1:
 	or $t3,$0,$0
 	or $t2,$0,$0
 loop2:
-	bgtz $t2,loop2end
-	nop
 	mul $t1,$t3,$t3
 	sub $t2,$t1,$t0
+	bgtz $t2,loop2end
+	nop
 	beq $0,$0,loop2
 	addiu $t3,$t3,1
+	
 loop2end:
 	addi $t4,$t3,-1
 	beq $0,$0,loop1

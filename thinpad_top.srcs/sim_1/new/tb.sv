@@ -34,7 +34,7 @@ wire flash_we_n;         //Flash写使能信号，低有效
 wire flash_byte_n;       //Flash 8bit模式选择，低有效。在使用flash的16位模式时请设为1
 
 //Windows需要注意路径分隔符的转义，例如"D:\\foo\\bar.bin"
-parameter BASE_RAM_INIT_FILE = "D:\\NSCSCC\\NSCSCC2022\\2022021\\asm\\user-sample.bin"; //BaseRAM初始化文件，请修改为实际的绝对路径
+parameter BASE_RAM_INIT_FILE = "D:\\NSCSCC\\NSCSCC2022\\2022021\\user-sample.bin"; //BaseRAM初始化文件，请修改为实际的绝对路径
 parameter EXT_RAM_INIT_FILE = "/tmp/eram.bin";    //ExtRAM初始化文件，请修改为实际的绝对路径
 parameter FLASH_INIT_FILE = "/tmp/kernel.elf";    //Flash初始化文件，请修改为实际的绝对路径
 
@@ -179,6 +179,8 @@ initial begin
     end
 end
 */
+
+/*
 `define TEST_ADDR   32'h80100000
 `define CRYPTONIGHT 32'h800030c4
 `define STREAM		32'h8000300c
@@ -327,5 +329,5 @@ always @(posedge clk_50M) begin
 	if(rdata_buf == 8'h07)
 		$finish;
 end
-
+*/
 endmodule
