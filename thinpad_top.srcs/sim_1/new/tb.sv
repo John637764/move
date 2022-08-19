@@ -34,7 +34,7 @@ wire flash_we_n;         //Flash写使能信号，低有效
 wire flash_byte_n;       //Flash 8bit模式选择，低有效。在使用flash的16位模式时请设为1
 
 //Windows需要注意路径分隔符的转义，例如"D:\\foo\\bar.bin"
-parameter BASE_RAM_INIT_FILE = "D:\\NSCSCC\\NSCSCC2022\\2022021\\kernel.bin"; //BaseRAM初始化文件，请修改为实际的绝对路径
+parameter BASE_RAM_INIT_FILE = "D:\\NSCSCC\\NSCSCC2022\\2022021\\asm\\user-sample.bin"; //BaseRAM初始化文件，请修改为实际的绝对路径
 parameter EXT_RAM_INIT_FILE = "/tmp/eram.bin";    //ExtRAM初始化文件，请修改为实际的绝对路径
 parameter FLASH_INIT_FILE = "/tmp/kernel.elf";    //Flash初始化文件，请修改为实际的绝对路径
 
@@ -199,7 +199,7 @@ reg [2:0] task_cnt;
 
 assign test_rclear = test_rready;
 
-async_receiver #(.ClkFrequency(50000000),.Baud(1152000)) //接收模块，9600无检验位
+async_receiver #(.ClkFrequency(50000000),.Baud(9600)) //接收模块，9600无检验位
     test_uart_r(
         .clk		    (clk_50M	),          //外部时钟信号
         .RxD		    (txd		),          //外部串行信号输入
@@ -208,7 +208,7 @@ async_receiver #(.ClkFrequency(50000000),.Baud(1152000)) //接收模块，9600�
         .RxD_data 	    (test_rdata )           //接收到的一字节数据
     );
 
-async_transmitter #(.ClkFrequency(50000000),.Baud(1152000)) //发送模块，9600无检验位
+async_transmitter #(.ClkFrequency(50000000),.Baud(9600)) //发送模块，9600无检验位
     test_uart_t(
         .clk	   (clk_50M    ),               //外部时钟信号
         .TxD	   (rxd        ),               //串行信号输出

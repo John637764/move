@@ -5,22 +5,28 @@
 
 __start:
 .text
-    ori $t0, $zero, 0x1   # t0 = 1
-    ori $t1, $zero, 0x1   # t1 = 1
-    xor $v0, $v0,   $v0   # v0 = 0
-    ori $v1, $zero, 8     # v1 = 8
-    lui $a0, 0x8040       # a0 = 0x80400000
-
-loop:
-    addu  $t2, $t0, $t1   # t2 = t0+t1
-    ori   $t0, $t1, 0x0   # t0 = t1
-    ori   $t1, $t2, 0x0   # t1 = t2
-    sw    $t1, 0($a0)
-    addiu $a0, $a0, 4     # a0 += 4
-    addiu $v0, $v0, 1     # v0 += 1
-
-    bne   $v0, $v1, loop
-    ori   $zero, $zero, 0 # nop
-
-    jr    $ra
-    ori   $zero, $zero, 0 # nop
+	ori $a0, 0x3		# $a0 = 3
+    lui $a1, 0x8040     # $a1 = 0x803ffffc
+	addi $a1,$a1,-4
+	lui $a2, 0x8050		# $a2 = 0x80500000
+	addi $a3,$a2,-4		# $a3 = 0x804ffffc
+loop1:
+	beq $a1,$a2,loop1end
+	addiu $a1,$a1,4
+	lw $t0,0($a1)
+	or $t3,$0,$0
+	or $t2,$0,$0
+loop2:
+	bgtz $t2,loop2end
+	nop
+	mul $t1,$t3,$t3
+	sub $t2,$t1,$t0
+	beq $0,$0,loop2
+	addiu $t3,$t3,1
+loop2end:
+	addi $t4,$t3,-1
+	beq $0,$0,loop1
+	sw  $t4,4($a3)
+loop1end:
+	jr $ra
+	nop
